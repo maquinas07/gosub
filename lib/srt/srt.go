@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 
 	"github.com/maquinas07/gosub/lib/ascii"
 	"github.com/maquinas07/gosub/lib/utf8"
@@ -66,6 +67,7 @@ func parseTiming(data []byte) (time int64, err error) {
 			}
 			charCount = 0
 			timeMult *= 6
+			baseExp /= 10
 		case ',':
 			if charCount != 3 {
 				err = ErrInvalidTiming
@@ -173,5 +175,70 @@ func Parse(reader io.Reader) (subs []*Subtitle, err error) {
 		err = p.err
 	}
 	subs = p.subtitles
+	return
+}
+
+const (
+	Millisecond int64 = 1
+	Second            = 1000 * Millisecond
+	Minute            = 60 * Second
+	Hour              = 60 * Minute
+)
+
+func fmtInt(buf []byte, v uint64) int {
+	w := len(buf)
+	if v == 0 {
+		w--
+		buf[w] = '0'
+	} else {
+		for v > 0 {
+			w--
+			buf[w] = byte(v%10) + '0'
+			v /= 10
+		}
+	}
+	return w
+}
+
+func serializeTimings(timing int64) (timings []byte) {
+	hours := uint64(timing / Hour)
+	minutes := uint64((timing % Hour) / Minute)
+	seconds := uint64((timing % Minute) / Second)
+	millis := uint64((timing % Second) / Millisecond)
+	timings = make([]byte, 12)
+	for i := 0; i < len(timings); i++ {
+		timings[i] = '0'
+	}
+	fmtInt(timings, millis)
+	fmtInt(timings[:8], seconds)
+	fmtInt(timings[:5], minutes)
+	fmtInt(timings[:2], hours)
+	timings[8] = ','
+	timings[5] = ':'
+	timings[2] = ':'
+	return
+}
+
+func Save(subs []*Subtitle, writer io.Writer) (err error) {
+	w := bufio.NewWriter(writer)
+	for i, v := range subs {
+		var c []byte
+		index := make([]byte, 1+int(math.Log10(float64(i+1))))
+		fmtInt(index, uint64(i+1))
+		c = append(c, index...)
+		c = append(c, '\n')
+		c = append(c, serializeTimings(v.StartTime)...)
+		c = append(c, timingSeparator...)
+		c = append(c, serializeTimings(v.EndTime)...)
+		c = append(c, '\n')
+		c = append(c, v.Dialogue...)
+		c = append(c, '\n')
+		_, err = w.Write(c)
+		if err != nil {
+			return
+		}
+	}
+
+	err = w.Flush()
 	return
 }
