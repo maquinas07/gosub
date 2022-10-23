@@ -1,55 +1,25 @@
 package getopt
 
 import (
+	"fmt"
 	"os"
+	"strings"
 )
 
 type Args struct {
 	program string
-	options []*ValuedOption
-	flags   []*Flag
+	params  []string
 }
 
 var expectedArgs = newSet()
-
-func (a *Args) GetOptions() []*ValuedOption {
-	return a.options
-}
-
-func (a *Args) GetFlags() []*Flag {
-	return a.flags
-}
 
 func (a *Args) GetProgram() string {
 	return a.program
 }
 
-func (a *Args) parseShortOption(shortArg string) (isCompleteOption bool) {
-	return false
+func (a *Args) GetParams() []string {
+	return a.params
 }
-
-func (a *Args) parseLongOption(longArg string) (isCompleteOption bool) {
-	for _, v := range longArg {
-		if v == '=' {
-			// (*a.options)[longArg[:i]] = longArg[i+1:]
-			return true
-		}
-	}
-	return false
-}
-
-func (a *Args) addFlag(flag string) {
-	// a.flags = append(a.flags, &flag)
-}
-
-// func parseValue(v interface{}, shortName rune, longName string) (opt Option) {
-// 	// switch v.(type) {
-// 	// case Option:
-// 	// 	{
-// 	// 		return &generic{v}
-// 	// 	}
-// 	// }
-// }
 
 func AddFlag(shortName rune, longName string, p *bool) (f Flag) {
 	f = &flag{
@@ -82,52 +52,75 @@ func AddOption(shortName rune, longName string, p *interface{}, isOptional bool,
 }
 
 func Parse() (a *Args, err error) {
+	args := os.Args
 	a = &Args{
-		program: os.Args[0],
+		program: args[0],
 	}
 
-	var optOffset byte
-	for i := 1; i < len(os.Args); i++ {
-		arg := os.Args[i]
+	for i := 1; i < len(args); i++ {
+		arg := args[i]
 		if arg[0] == '-' {
-			if len(arg) == 1 {
-				// Stdin arg
-			}
-			switch optOffset {
-			case 0:
-				{
-					break
-				}
-			case 1, 2:
-				{
-					a.addFlag(os.Args[i-1][optOffset:])
-					optOffset = 0
-				}
-			}
 			if arg[1] == '-' {
-				if !a.parseLongOption(arg[2:]) {
-					optOffset = 2
+				i := strings.IndexRune(arg, '=')
+				var value string
+				if i > 0 {
+					arg = arg[:i]
+					value = arg[i+1:]
+				}
+				opt := expectedArgs.expectedLong[arg]
+
+				if opt != nil {
+					valueOpt, ok := (*opt).(*valuedOption)
+					if ok {
+						if value != "" {
+							valueOpt.setValue(value)
+						} else if !valueOpt.isOptional && i < 0 {
+							if len(args) < i+2 {
+								err = fmt.Errorf("missing argument value")
+								return
+							}
+							i++
+							valueOpt.setValue(args[i])
+							continue
+						}
+					} else {
+						flag, ok := (*opt).(*flag)
+						if !ok {
+							a.params = append(a.params, arg)
+							continue
+						}
+						flag.set()
+					}
 				}
 			} else {
-				if !a.parseShortOption(arg[1:]) {
-					optOffset = 1
+				for j, r := range arg {
+					opt := expectedArgs.expectedShort[r]
+					if opt != nil {
+						flag, ok := (*opt).(*flag)
+						if ok {
+							flag.set()
+						} else {
+							valueOpt, ok := (*opt).(*valuedOption)
+							if !ok {
+								a.params = append(a.params, arg)
+								continue
+							}
+							value := arg[j+1:]
+							if value == "" && !valueOpt.isOptional {
+								if len(args) < i+2 {
+									err = fmt.Errorf("missing argument value")
+									return
+								}
+								i++
+								value = args[i]
+							}
+							valueOpt.setValue(value)
+						}
+					}
 				}
 			}
 		} else {
-			switch optOffset {
-			case 0:
-				{
-					//
-				}
-			case 1, 2:
-				{
-					// opt := &Option{
-					// 	key:   os.Args[i-1][optOffset:],
-					// 	value: arg,
-					// }
-					// a.options = append(a.options, opt)
-				}
-			}
+			a.params = append(a.params, arg)
 		}
 	}
 	return
