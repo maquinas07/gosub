@@ -1,12 +1,7 @@
 package getopt
 
-type Flag interface {
-	Option
-	IsSet() bool
-}
-
 type flag struct {
-	opt Option
+	option
 	p   *bool
 }
 
@@ -19,17 +14,3 @@ func (f *flag) set() {
 	}
 }
 
-func (f *flag) IsSet() bool {
-	if f.p == nil {
-		return false
-	}
-	return *f.p
-}
-
-func (f *flag) ShortName() rune {
-	return f.opt.ShortName()
-}
-
-func (f *flag) LongName() string {
-	return f.opt.LongName()
-}

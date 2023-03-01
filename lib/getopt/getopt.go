@@ -21,23 +21,22 @@ func (a *Args) GetParams() []string {
 	return a.params
 }
 
-func AddFlag(shortName rune, longName string, p *bool) (f Flag) {
-	f = &flag{
-		opt: &option{
+func AddFlag(shortName rune, longName string, p *bool) {
+    f := &flag{
+        option: option{
 			shortName: shortName,
 			longName:  longName,
 		},
 		p: p,
 	}
-	var r Option = f
-	expectedArgs.expectedShort[shortName] = &r
-	expectedArgs.expectedLong[longName] = &r
+	expectedArgs.expectedShort[shortName] = f
+	expectedArgs.expectedLong[longName] = f
 	return
 }
 
-func AddOption(shortName rune, longName string, p *interface{}, isOptional bool, valueParser *ValueParser) (o Option) {
-	o = &valuedOption{
-		opt: &option{
+func AddOption(shortName rune, longName string, p interface{}, isOptional bool, valueParser ValueParser) {
+    o := &valuedOption{
+        option: option {
 			shortName: shortName,
 			longName:  longName,
 		},
@@ -45,9 +44,8 @@ func AddOption(shortName rune, longName string, p *interface{}, isOptional bool,
 		valueParser: valueParser,
 		isOptional:  isOptional,
 	}
-	var r Option = o
-	expectedArgs.expectedShort[shortName] = &r
-	expectedArgs.expectedLong[longName] = &r
+	expectedArgs.expectedShort[shortName] = o
+	expectedArgs.expectedLong[longName] = o
 	return
 }
 
@@ -70,10 +68,13 @@ func Parse() (a *Args, err error) {
 				opt := expectedArgs.expectedLong[arg]
 
 				if opt != nil {
-					valueOpt, ok := (*opt).(*valuedOption)
+					valueOpt, ok := opt.(*valuedOption)
 					if ok {
 						if value != "" {
-							valueOpt.setValue(value)
+							err = valueOpt.setValue(value)
+                            if err != nil {
+                                return
+                            }
 						} else if !valueOpt.isOptional && i < 0 {
 							if len(args) < i+2 {
 								err = fmt.Errorf("missing argument value")
@@ -84,7 +85,7 @@ func Parse() (a *Args, err error) {
 							continue
 						}
 					} else {
-						flag, ok := (*opt).(*flag)
+						flag, ok := opt.(*flag)
 						if !ok {
 							a.params = append(a.params, arg)
 							continue
@@ -96,11 +97,11 @@ func Parse() (a *Args, err error) {
 				for j, r := range arg {
 					opt := expectedArgs.expectedShort[r]
 					if opt != nil {
-						flag, ok := (*opt).(*flag)
+						flag, ok := opt.(*flag)
 						if ok {
 							flag.set()
 						} else {
-							valueOpt, ok := (*opt).(*valuedOption)
+							valueOpt, ok := opt.(*valuedOption)
 							if !ok {
 								a.params = append(a.params, arg)
 								continue
@@ -114,7 +115,10 @@ func Parse() (a *Args, err error) {
 								i++
 								value = args[i]
 							}
-							valueOpt.setValue(value)
+							err = valueOpt.setValue(value)
+                            if err != nil {
+                                return
+                            }
 						}
 					}
 				}

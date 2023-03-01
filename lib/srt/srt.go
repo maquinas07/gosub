@@ -8,6 +8,7 @@ import (
 	"math"
 
 	"github.com/maquinas07/gosub/lib/ascii"
+	. "github.com/maquinas07/gosub/lib/shared"
 	"github.com/maquinas07/gosub/lib/utf8"
 )
 
@@ -156,11 +157,9 @@ func Parse(reader io.Reader) (subs []*Subtitle, err error) {
 		currentState: newline,
 	}
 
-	{
-		if scanner.Scan() {
-			data := utf8.StripUTF8BOM(scanner.Bytes())
-			p.parse(data)
-		}
+	if scanner.Scan() {
+		data := utf8.StripUTF8BOM(scanner.Bytes())
+		p.parse(data)
 	}
 
 	for scanner.Scan() && p.parse(scanner.Bytes()) {
@@ -178,23 +177,15 @@ func Parse(reader io.Reader) (subs []*Subtitle, err error) {
 	return
 }
 
-const (
-	Millisecond int64 = 1
-	Second            = 1000 * Millisecond
-	Minute            = 60 * Second
-	Hour              = 60 * Minute
-)
-
 func fmtInt(buf []byte, v uint64) int {
-	w := len(buf)
+	w := len(buf) - 1
 	if v == 0 {
-		w--
 		buf[w] = '0'
 	} else {
 		for v > 0 {
-			w--
 			buf[w] = byte(v%10) + '0'
 			v /= 10
+			w--
 		}
 	}
 	return w

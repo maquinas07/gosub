@@ -1,14 +1,14 @@
 package getopt
 
 type argSet struct {
-	expectedShort map[rune]*Option
-	expectedLong  map[string]*Option
+	expectedShort map[rune]interface{}
+	expectedLong  map[string]interface{}
 }
 
 func newSet() *argSet {
 	s := &argSet{
-		expectedShort: make(map[rune]*Option),
-		expectedLong:  make(map[string]*Option),
+		expectedShort: make(map[rune]interface{}),
+		expectedLong:  make(map[string]interface{}),
 	}
 	return s
 }

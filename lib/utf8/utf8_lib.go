@@ -9,5 +9,8 @@ func StripUTF8BOM(data []byte) []byte {
 	var i int
 	for i = 0; i < len(utf8bom) && data[i] == utf8bom[i]; i++ {
 	}
-	return data[i:]
+	if i == len(utf8bom) {
+		return data[i:]
+	}
+	return data
 }
