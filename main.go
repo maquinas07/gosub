@@ -25,7 +25,7 @@ func main() {
 			return
 		}
 		defer inputFile.Close()
-		subs, err := srt.Parse(inputFile)
+		subs, err := srt.ParseMemoryUnbound(inputFile)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, err.Error())
 			return
