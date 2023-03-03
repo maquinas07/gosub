@@ -16,7 +16,7 @@ func TrimWhitespaces(data []byte) []byte {
 }
 
 func IsDigit(data byte) bool {
-	return data >= 48 && data <= 57
+	return data >= '0' && data <= '9'
 }
 
 func ToDigit(data byte) (digit int, err error) {
@@ -24,6 +24,6 @@ func ToDigit(data byte) (digit int, err error) {
 		err = fmt.Errorf("ascii_lib: invalid digit")
 		return
 	}
-	digit = int(data - 48)
+	digit = int(data - '0')
 	return
 }
