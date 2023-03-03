@@ -1,16 +1,12 @@
 package utf8
 
-var utf8bom = []byte{0xEF, 0xBB, 0xBF}
+import "encoding/binary"
+
+var utf8bom uint32 = 0xEFBBBF00
 
 func StripUTF8BOM(data []byte) []byte {
-	if len(data) < len(utf8bom) {
-		return data
-	}
-	var i int
-	for i = 0; i < len(utf8bom) && data[i] == utf8bom[i]; i++ {
-	}
-	if i == len(utf8bom) {
-		return data[i:]
-	}
-	return data
+    if utf8bom & binary.BigEndian.Uint32(data[:4]) == utf8bom {
+        return data[4:]
+    }
+    return data
 }
