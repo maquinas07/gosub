@@ -2,6 +2,7 @@ package srt
 
 import (
 	"bufio"
+	"math/rand"
 	"os"
 	"testing"
 
@@ -9,6 +10,13 @@ import (
 )
 
 var subs []*Subtitle
+var bytes []byte
+
+func BenchmarkFmt1(b *testing.B) {
+    for i := 0; i < b.N; i++ {
+		bytes = serializeTimings(rand.Int63n(3 * 1000000000))
+	}
+}
 
 func BenchmarkSrt(b *testing.B) {
 	b.StopTimer()
@@ -39,18 +47,18 @@ func BenchmarkSrtUnbound(b *testing.B) {
 func TestSrt(t *testing.T) {
 	fd, err := os.Open("./test.srt")
 	if err != nil {
-		t.FailNow()
+		t.Fatalf("Couldn't open test file")
 	}
 
 	subs, err := ParseMemoryUnbound(fd)
 	if err != nil {
-		t.FailNow()
+		t.Fatalf("Fatal error in parsing %s", err)
 	}
 	assert.NotEmpty(t, subs)
 
 	of, err := os.Create("./output.srt")
 	if err != nil {
-		t.FailNow()
+		t.Fatalf("Couldn't create output file")
 	}
 	Save(subs, of)
 	fd.Close()
@@ -58,11 +66,11 @@ func TestSrt(t *testing.T) {
 
 	fd, err = os.Open("./test.srt")
 	if err != nil {
-		t.FailNow()
+		t.Fatalf("Couldn't open test file")
 	}
 	of, err = os.Open("./output.srt")
 	if err != nil {
-		t.FailNow()
+		t.Fatalf("Couldn't open output test file for reading")
 	}
 
 	fdReader := bufio.NewScanner(fd)

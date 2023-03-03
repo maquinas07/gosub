@@ -2,6 +2,7 @@ package srt
 
 import (
 	"bufio"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -28,7 +29,7 @@ type parser struct {
 	err             error
 }
 
-var timingSeparator = []byte{' ', '-', '-', '>', ' '}
+var timingSeparator uint64 = ' '<<32 | '>'<<24 | '-'<<16 | '-'<<8 | ' '
 
 type Subtitle struct {
 	Index     int
@@ -95,10 +96,7 @@ func parseTimings(data []byte) (startTime int64, endTime int64, err error) {
 		err = ErrInvalidTiming
 		return
 	}
-	var i, j int
-	for i, j = 12, 0; j < len(timingSeparator) && data[i] == timingSeparator[j]; i, j = i+1, j+1 {
-	}
-	if j != len(timingSeparator) {
+	if (binary.LittleEndian.Uint64(data[12:20]) & timingSeparator) != timingSeparator {
 		err = ErrInvalidTiming
 		return
 	}
@@ -106,7 +104,7 @@ func parseTimings(data []byte) (startTime int64, endTime int64, err error) {
 	if err != nil {
 		return
 	}
-	endTime, err = parseTiming(data[i:])
+	endTime, err = parseTiming(data[20:])
 	return
 }
 
@@ -204,18 +202,42 @@ func Parse(reader io.Reader) (subs []*Subtitle, err error) {
 	return
 }
 
-func fmtInt(buf []byte, v uint64) int {
+func fmtInt(buf []byte, v uint64) {
 	w := len(buf) - 1
-	if v == 0 {
+    if (v == 0) {
 		buf[w] = '0'
-	} else {
-		for v > 0 {
-			buf[w] = byte(v%10) + '0'
-			v /= 10
-			w--
-		}
+        return
+    }
+	for v > 0 && w >= 0 {
+		buf[w] = byte(v%10) + '0'
+		v /= 10
+		w--
 	}
-	return w
+}
+
+// https://pvk.ca/Blog/2017/12/22/appnexus-common-framework-its-out-also-how-to-print-integers-faster/
+func encodeTenThousands(hi, lo uint64) uint64 {
+	merged := hi | (lo << 32)
+	top := ((merged * 10486) >> 20) & ((0x7F << 32) | 0x7F)
+	bot := merged - 100*top
+	hundreds := (bot << 16) + top
+	tens := (hundreds * 103) >> 10
+	tens &= (0xF << 48) | (0xF << 32) | (0xF << 16) | 0xF
+	tens += (hundreds - 10*tens) << 8
+
+	return tens
+}
+
+func fmt16Uint64(buf []byte, v uint64) []byte {
+	top := v / 100000000
+	bottom := v % 100000000
+	first :=
+		0x3030303030303030 + encodeTenThousands(top/10000, top%10000)
+	second :=
+		0x3030303030303030 + encodeTenThousands(bottom/10000, bottom%10000)
+	buf = binary.LittleEndian.AppendUint64(buf, first)
+	buf = binary.LittleEndian.AppendUint64(buf, second)
+	return buf
 }
 
 func serializeTimings(timing int64) (timings []byte) {
@@ -223,18 +245,14 @@ func serializeTimings(timing int64) (timings []byte) {
 	minutes := uint64((timing % Hour) / Minute)
 	seconds := uint64((timing % Minute) / Second)
 	millis := uint64((timing % Second) / Millisecond)
-	timings = make([]byte, 12)
-	for i := 0; i < len(timings); i++ {
-		timings[i] = '0'
-	}
-	fmtInt(timings, millis)
-	fmtInt(timings[:8], seconds)
-	fmtInt(timings[:5], minutes)
-	fmtInt(timings[:2], hours)
+
+	timings = make([]byte, 0, 16)
+	timings = fmt16Uint64(timings, hours*10000000000+minutes*10000000+seconds*10000+millis)[4:]
+
 	timings[8] = ','
 	timings[5] = ':'
 	timings[2] = ':'
-	return
+	return timings
 }
 
 func Save(subs []*Subtitle, writer io.Writer) (err error) {
@@ -246,7 +264,11 @@ func Save(subs []*Subtitle, writer io.Writer) (err error) {
 		c = append(c, index...)
 		c = append(c, '\n')
 		c = append(c, serializeTimings(v.StartTime)...)
-		c = append(c, timingSeparator...)
+		c = append(c, byte(timingSeparator),
+			byte(timingSeparator>>8),
+			byte(timingSeparator>>16),
+			byte(timingSeparator>>24),
+			byte(timingSeparator>>32))
 		c = append(c, serializeTimings(v.EndTime)...)
 		c = append(c, '\n')
 		c = append(c, v.Dialogue...)
