@@ -148,6 +148,33 @@ func (p *parser) parse(data []byte) bool {
 	return true
 }
 
+func ParseMemoryUnbound(reader io.Reader) (subs []*Subtitle, err error) {
+	fileBytes, err := io.ReadAll(reader)
+	if err != nil {
+		return
+	}
+
+	utf8.StripUTF8BOM(fileBytes)
+
+	var p *parser = &parser{
+		subtitles:    make([]*Subtitle, 0),
+		currentState: newline,
+	}
+
+	var i, j int
+	for ; i < len(fileBytes); i++ {
+		if fileBytes[i] == '\n' {
+			p.parse(fileBytes[j:i])
+			j = i + 1
+		}
+	}
+
+	if p.err != nil {
+		err = p.err
+	}
+	return p.subtitles, err
+}
+
 func Parse(reader io.Reader) (subs []*Subtitle, err error) {
 	scanner := bufio.NewScanner(reader)
 

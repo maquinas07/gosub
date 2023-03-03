@@ -23,13 +23,26 @@ func BenchmarkSrt(b *testing.B) {
 	}
 }
 
+func BenchmarkSrtUnbound(b *testing.B) {
+	b.StopTimer()
+	fd, err := os.Open("./test.srt")
+	if err != nil {
+		b.FailNow()
+	}
+	defer fd.Close()
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		subs, err = ParseMemoryUnbound(fd)
+	}
+}
+
 func TestSrt(t *testing.T) {
 	fd, err := os.Open("./test.srt")
 	if err != nil {
 		t.FailNow()
 	}
 
-	subs, err := Parse(fd)
+	subs, err := ParseMemoryUnbound(fd)
 	if err != nil {
 		t.FailNow()
 	}
