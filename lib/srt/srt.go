@@ -152,7 +152,7 @@ func ParseMemoryUnbound(reader io.Reader) (subs []*Subtitle, err error) {
 		return
 	}
 
-	utf8.StripUTF8BOM(fileBytes)
+	fileBytes = utf8.StripUTF8BOM(fileBytes)
 
 	var p *parser = &parser{
 		subtitles:    make([]*Subtitle, 0),
@@ -160,10 +160,18 @@ func ParseMemoryUnbound(reader io.Reader) (subs []*Subtitle, err error) {
 	}
 
 	var i, j int
-	for ; i < len(fileBytes); i++ {
+	var gtg bool = true
+	for ; i < len(fileBytes) && gtg; i++ {
 		if fileBytes[i] == '\n' {
-			p.parse(fileBytes[j:i])
+			gtg = p.parse(fileBytes[j:i])
 			j = i + 1
+		} else if fileBytes[i] == '\r' && i+1 < len(fileBytes) && fileBytes[i+1] == '\n' {
+			gtg = p.parse(fileBytes[j:i])
+			i = i + 1
+			j = i + 1
+		} else if len(fileBytes) == i+1 {
+			p.parse(fileBytes[j : i+1])
+			p.parse([]byte{})
 		}
 	}
 
@@ -204,10 +212,10 @@ func Parse(reader io.Reader) (subs []*Subtitle, err error) {
 
 func fmtInt(buf []byte, v uint64) {
 	w := len(buf) - 1
-    if (v == 0) {
+	if v == 0 {
 		buf[w] = '0'
-        return
-    }
+		return
+	}
 	for v > 0 && w >= 0 {
 		buf[w] = byte(v%10) + '0'
 		v /= 10
