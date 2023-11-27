@@ -7,14 +7,14 @@ import (
 
 var joinOverlaps bool
 
-func init_overlaps_join() {
+func initOverlapsJoin() {
 	getopt.AddFlag('j', "join-overlaps", &joinOverlaps)
 }
 
-func perform_overlaps_join(subsReference **[]*srt.Subtitle) {
+func performOverlapsJoin(subsReference **[]*srt.Subtitle) {
 	if joinOverlaps {
 		var newSubs []*srt.Subtitle
-        subs := **subsReference
+		subs := **subsReference
 		for i := 0; i < len(subs); i++ {
 			sub := &srt.Subtitle{
 				Index:     subs[i].Index,
@@ -27,7 +27,7 @@ func perform_overlaps_join(subsReference **[]*srt.Subtitle) {
 				i = j
 			}
 			newSubs = append(newSubs, sub)
-            *subsReference = &newSubs
+			*subsReference = &newSubs
 		}
 	}
 }

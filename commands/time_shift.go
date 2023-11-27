@@ -10,7 +10,7 @@ import (
 )
 
 const (
-    invalidTimeFormatErrorMessage = "Invalid time format."
+	invalidTimeFormatErrorMessage = "Invalid time format."
 )
 
 type TimeSegment struct {
@@ -35,6 +35,12 @@ func (o *TimeShift) shift(subs []*srt.Subtitle) {
 		if currentTimeFilter == nil || currentTimeFilter.StartTime > sub.StartTime && currentTimeFilter.EndTime < sub.EndTime {
 			sub.StartTime += o.ShiftByMs
 			sub.EndTime += o.ShiftByMs
+			if sub.StartTime < 0 {
+				sub.StartTime = 0
+			}
+			if sub.EndTime < 0 {
+				sub.EndTime = 0
+			}
 			if len(o.TimeFilters) > j {
 				currentTimeFilter = &o.TimeFilters[j]
 				j++
@@ -45,7 +51,7 @@ func (o *TimeShift) shift(subs []*srt.Subtitle) {
 
 var timeShifts []TimeShift
 
-func init_time_shift() {
+func initTimeShift() {
 	getopt.AddOption('s', "shift", nil, false, func(s string) (dummy interface{}, err error) {
 		var parsedTimeShift TimeShift
 		var exp int64 = 0
@@ -141,7 +147,7 @@ func init_time_shift() {
 	})
 }
 
-func perform_time_shifts(subs []*srt.Subtitle) {
+func performTimeShifts(subs []*srt.Subtitle) {
 	for i := 0; i < len(timeShifts); i++ {
 		timeShifts[i].shift(subs)
 	}
