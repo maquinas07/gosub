@@ -3,13 +3,21 @@ package main
 import (
 	"fmt"
 	"os"
+	"path"
 
 	"github.com/maquinas07/gosub/commands"
 	"github.com/maquinas07/gosub/lib/getopt"
 	"github.com/maquinas07/gosub/lib/srt"
 )
 
+var replace bool
+
+func addCommonFlags() {
+	getopt.AddFlag('r', "replace", &replace)
+}
+
 func main() {
+	addCommonFlags()
 	commands.Init()
 
 	args, err := getopt.Parse()
@@ -22,7 +30,8 @@ func main() {
 	for i := 0; i < len(params); i++ {
 		inputFile, err := os.Open(params[i])
 		if err != nil {
-			return
+			fmt.Fprintf(os.Stderr, err.Error())
+			continue
 		}
 		defer inputFile.Close()
 		subs, err := srt.ParseMemoryUnbound(inputFile)
@@ -33,12 +42,17 @@ func main() {
 
 		commands.Execute(&subs)
 
-		outputFile, err := os.Create("out." + params[i])
+		var outputFile *os.File
+		defer outputFile.Close()
+		if !replace {
+			outputFile, err = os.Create("out." + path.Base(params[i]))
+		} else {
+			outputFile, err = os.Create(params[i])
+		}
 		if err != nil {
 			fmt.Fprintf(os.Stderr, err.Error())
 			return
 		}
-		defer outputFile.Close()
 		err = srt.Save(subs, outputFile)
 		if err != nil {
 			fmt.Print("Error\n")
