@@ -3,9 +3,9 @@ package commands
 import (
 	"errors"
 
-	"github.com/maquinas07/gosub/lib/ascii"
-	"github.com/maquinas07/gosub/lib/getopt"
-	. "github.com/maquinas07/gosub/lib/shared"
+	"github.com/maquinas07/golibs/ascii"
+	"github.com/maquinas07/golibs/getopt"
+	. "github.com/maquinas07/golibs/shared"
 	"github.com/maquinas07/gosub/lib/srt"
 )
 

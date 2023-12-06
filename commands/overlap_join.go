@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/maquinas07/gosub/lib/getopt"
+	"github.com/maquinas07/golibs/getopt"
 	"github.com/maquinas07/gosub/lib/srt"
 )
 
