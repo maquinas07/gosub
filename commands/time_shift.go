@@ -24,28 +24,25 @@ type TimeShift struct {
 }
 
 func (o *TimeShift) shift(subs []*srt.Subtitle) {
-	var currentTimeFilter *TimeSegment
-	var j int = 0
-	if len(o.TimeFilters) > j {
-		currentTimeFilter = &o.TimeFilters[j]
-		j++
-	}
 	for i := 0; i < len(subs); i++ {
 		sub := subs[i]
-		if currentTimeFilter == nil || currentTimeFilter.StartTime > sub.StartTime && currentTimeFilter.EndTime < sub.EndTime {
-			sub.StartTime += o.ShiftByMs
-			sub.EndTime += o.ShiftByMs
-			if sub.StartTime < 0 {
-				sub.StartTime = 0
-			}
-			if sub.EndTime < 0 {
-				sub.EndTime = 0
-			}
-			if len(o.TimeFilters) > j {
-				currentTimeFilter = &o.TimeFilters[j]
-				j++
-			}
-		}
+        var currentTimeFilter *TimeSegment
+        for j := 0; j <= len(o.TimeFilters); j++ {
+            if len(o.TimeFilters) > j {
+                currentTimeFilter = &o.TimeFilters[j]
+            }
+            if currentTimeFilter == nil || (currentTimeFilter.StartTime < 0 || sub.StartTime > currentTimeFilter.StartTime) && (currentTimeFilter.EndTime < 0 || sub.EndTime < currentTimeFilter.EndTime) {
+                sub.StartTime += o.ShiftByMs
+                sub.EndTime += o.ShiftByMs
+                if sub.StartTime < 0 {
+                    sub.StartTime = 0
+                }
+                if sub.EndTime < 0 {
+                    sub.EndTime = 0
+                }
+                break
+            }
+        }
 	}
 }
 
@@ -54,6 +51,8 @@ var timeShifts []TimeShift
 func initTimeShift() {
 	getopt.AddOption('s', "shift", nil, false, func(s string) (dummy interface{}, err error) {
 		var parsedTimeShift TimeShift
+		var currentTimeFilter *TimeSegment
+		var accumulatedTime int64
 		var exp int64 = 0
 		var base int64 = 1
 		for i := len(s) - 1; i >= 0; i-- {
@@ -66,9 +65,6 @@ func initTimeShift() {
 						err = errors.New(invalidTimeFormatErrorMessage)
 						return
 					}
-					if base > 1 {
-						parsedTimeShift.ShiftByMs *= exp
-					}
 					base = 1
 					exp = Second
 					break
@@ -78,7 +74,6 @@ func initTimeShift() {
 			case 'M':
 				{
 					if base > 1 {
-						parsedTimeShift.ShiftByMs *= exp
 						exp = 0
 					}
 					base = 1
@@ -101,7 +96,7 @@ func initTimeShift() {
 						return
 					}
 					if base > 1 {
-						parsedTimeShift.ShiftByMs *= exp
+						accumulatedTime *= exp
 					}
 					base = 1
 					exp = Hour
@@ -110,7 +105,7 @@ func initTimeShift() {
 			case '-':
 				{
 					if i == 0 {
-						parsedTimeShift.ShiftByMs *= -1
+						accumulatedTime *= -1
 					} else {
 						err = errors.New(invalidTimeFormatErrorMessage)
 						return
@@ -124,6 +119,32 @@ func initTimeShift() {
 					}
 					break
 				}
+			case '>':
+				{
+					if currentTimeFilter != nil && currentTimeFilter.StartTime > 0 {
+						parsedTimeShift.TimeFilters = append(parsedTimeShift.TimeFilters, *currentTimeFilter)
+					}
+					currentTimeFilter = new(TimeSegment)
+					currentTimeFilter.EndTime = -1
+					currentTimeFilter.StartTime = accumulatedTime
+					accumulatedTime = 0
+					exp = 0
+					base = 1
+					break
+				}
+			case '<':
+				{
+					if currentTimeFilter != nil && currentTimeFilter.EndTime > 0 {
+						parsedTimeShift.TimeFilters = append(parsedTimeShift.TimeFilters, *currentTimeFilter)
+					}
+					currentTimeFilter = new(TimeSegment)
+					currentTimeFilter.StartTime = -1
+					currentTimeFilter.EndTime = accumulatedTime
+					accumulatedTime = 0
+					exp = 0
+					base = 1
+					break
+				}
 			default:
 				{
 					if exp == 0 {
@@ -135,13 +156,16 @@ func initTimeShift() {
 					if err != nil {
 						return
 					}
-					parsedTimeShift.ShiftByMs += base * int64(value)
+					accumulatedTime += base * int64(value) * exp
 					base *= 10
 					break
 				}
 			}
 		}
-		parsedTimeShift.ShiftByMs *= exp
+		if currentTimeFilter != nil {
+			parsedTimeShift.TimeFilters = append(parsedTimeShift.TimeFilters, *currentTimeFilter)
+		}
+		parsedTimeShift.ShiftByMs = accumulatedTime
 		timeShifts = append(timeShifts, parsedTimeShift)
 		return nil, err
 	})
