@@ -8,9 +8,9 @@ import (
 	"io"
 	"math"
 
-	"github.com/maquinas07/gosub/lib/ascii"
-	. "github.com/maquinas07/gosub/lib/shared"
-	"github.com/maquinas07/gosub/lib/utf8"
+	"github.com/maquinas07/golibs/ascii"
+	. "github.com/maquinas07/golibs/shared"
+	"github.com/maquinas07/golibs/utf8"
 )
 
 // The parser is a state machine
@@ -44,16 +44,12 @@ var (
 )
 
 func parseIndex(data []byte) (index int, err error) {
-	for i, baseExp := len(data)-1, 1; i >= 0; i, baseExp = i-1, baseExp*10 {
-		var value int
-		value, err = ascii.ToDigit(data[i])
-		if err != nil {
-			err = ErrInvalidIndex
-			return
-		}
-		index += int(value) * baseExp
-	}
-	return
+    index, err = ascii.ParseInt(data)
+    if err != nil {
+        err = ErrInvalidIndex
+        return
+    }
+    return
 }
 
 func parseTiming(data []byte) (time int64, err error) {

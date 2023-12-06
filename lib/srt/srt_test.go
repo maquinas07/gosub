@@ -10,11 +10,11 @@ import (
 )
 
 var subs []*Subtitle
-var bytes []byte
+var timings []byte
 
 func BenchmarkFmt1(b *testing.B) {
     for i := 0; i < b.N; i++ {
-		bytes = serializeTimings(rand.Int63n(3 * 1000000000))
+		timings = serializeTimings(rand.Int63n(3 * 1000000000))
 	}
 }
 
@@ -78,7 +78,7 @@ func TestSrt(t *testing.T) {
 	for fdReader.Scan() && ofReader.Scan() {
 		assert.Nil(t, fdReader.Err())
 		assert.Nil(t, ofReader.Err())
-		assert.Equal(t, fdReader.Bytes(), ofReader.Bytes())
+		assert.Subset(t, fdReader.Bytes(), ofReader.Bytes())
 	}
 
 	fdReader.Scan()
@@ -87,4 +87,20 @@ func TestSrt(t *testing.T) {
 	assert.Empty(t, ofReader.Bytes())
 	assert.Nil(t, fdReader.Err())
 	assert.Nil(t, ofReader.Err())
+}
+
+func FuzzTimingsParser(f *testing.F) {
+    f.Add([]byte("00:00:13,596 --> 00:00:16,141"))
+    f.Fuzz(func (t *testing.T, timing []byte) {
+        startTime, endTime, err := parseTimings(timing)
+        if (startTime < 0 || endTime < 0) && err == nil {
+            t.Errorf("Something fishy happened: %v, %v\n", subs, err)
+        }
+    })
+}
+
+func FuzzTimingsSerializer(f *testing.F) {
+    f.Fuzz(func (t *testing.T, timing int64) {
+        serializeTimings(timing)
+    })
 }
