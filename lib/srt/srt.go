@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"os"
 
 	"github.com/maquinas07/golibs/ascii"
 	. "github.com/maquinas07/golibs/shared"
@@ -44,12 +45,12 @@ var (
 )
 
 func parseIndex(data []byte) (index int, err error) {
-    index, err = ascii.ParseInt(data)
-    if err != nil {
-        err = ErrInvalidIndex
-        return
-    }
-    return
+	index, err = ascii.ParseInt(data)
+	if err != nil {
+		err = ErrInvalidIndex
+		return
+	}
+	return
 }
 
 func parseTiming(data []byte) (time int64, err error) {
@@ -134,6 +135,10 @@ func (p *parser) parse(data []byte) bool {
 				p.currentSubtitle.Dialogue = append(p.currentSubtitle.Dialogue, data...)
 				p.currentSubtitle.Dialogue = append(p.currentSubtitle.Dialogue, '\n')
 			} else {
+				if len(p.currentSubtitle.Dialogue) == 0 {
+					fmt.Fprintf(os.Stderr, "warn: Found dialogue started by a newline character, ignoring\n")
+					return true
+				}
 				p.subtitles = append(p.subtitles, p.currentSubtitle)
 				p.currentState = newline
 			}
