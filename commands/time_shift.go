@@ -26,23 +26,23 @@ type TimeShift struct {
 func (o *TimeShift) shift(subs []*srt.Subtitle) {
 	for i := 0; i < len(subs); i++ {
 		sub := subs[i]
-        var currentTimeFilter *TimeSegment
-        for j := 0; j <= len(o.TimeFilters); j++ {
-            if len(o.TimeFilters) > j {
-                currentTimeFilter = &o.TimeFilters[j]
-            }
-            if currentTimeFilter == nil || (currentTimeFilter.StartTime < 0 || sub.StartTime > currentTimeFilter.StartTime) && (currentTimeFilter.EndTime < 0 || sub.EndTime < currentTimeFilter.EndTime) {
-                sub.StartTime += o.ShiftByMs
-                sub.EndTime += o.ShiftByMs
-                if sub.StartTime < 0 {
-                    sub.StartTime = 0
-                }
-                if sub.EndTime < 0 {
-                    sub.EndTime = 0
-                }
-                break
-            }
-        }
+		var currentTimeFilter *TimeSegment
+		for j := 0; j <= len(o.TimeFilters); j++ {
+			if len(o.TimeFilters) > j {
+				currentTimeFilter = &o.TimeFilters[j]
+			}
+			if currentTimeFilter == nil || (currentTimeFilter.StartTime < 0 || sub.StartTime > currentTimeFilter.StartTime) && (currentTimeFilter.EndTime < 0 || sub.EndTime < currentTimeFilter.EndTime) {
+				sub.StartTime += o.ShiftByMs
+				sub.EndTime += o.ShiftByMs
+				if sub.StartTime < 0 {
+					sub.StartTime = 0
+				}
+				if sub.EndTime < 0 {
+					sub.EndTime = 0
+				}
+				break
+			}
+		}
 	}
 }
 
