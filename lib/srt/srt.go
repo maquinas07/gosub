@@ -89,6 +89,7 @@ func parseTiming(data []byte) (time int64, err error) {
 }
 
 func parseTimings(data []byte) (startTime int64, endTime int64, err error) {
+	data = ascii.TrimWhitespaces(data)
 	if len(data) != 29 {
 		err = ErrInvalidTiming
 		return
