@@ -9,8 +9,8 @@ import (
 	"github.com/maquinas07/gosub/lib/srt"
 )
 
-const (
-	invalidTimeFormatErrorMessage = "Invalid time format."
+var (
+	errInvalidTimeFormat = errors.New("Invalid time format.\n")
 )
 
 type TimeSegment struct {
@@ -62,7 +62,7 @@ func initTimeShift() {
 			case 'S':
 				{
 					if exp > 0 && base == 1 {
-						err = errors.New(invalidTimeFormatErrorMessage)
+						err = errInvalidTimeFormat
 						return
 					}
 					base = 1
@@ -82,7 +82,7 @@ func initTimeShift() {
 					} else if exp == 0 {
 						exp = Minute
 					} else {
-						err = errors.New(invalidTimeFormatErrorMessage)
+						err = errInvalidTimeFormat
 						return
 					}
 					break
@@ -92,7 +92,7 @@ func initTimeShift() {
 			case 'H':
 				{
 					if exp > 0 && base == 1 {
-						err = errors.New(invalidTimeFormatErrorMessage)
+						err = errInvalidTimeFormat
 						return
 					}
 					if base > 1 {
@@ -107,7 +107,7 @@ func initTimeShift() {
 					if i == 0 {
 						accumulatedTime *= -1
 					} else {
-						err = errors.New(invalidTimeFormatErrorMessage)
+						err = errInvalidTimeFormat
 						return
 					}
 					break
@@ -115,7 +115,7 @@ func initTimeShift() {
 			case '+':
 				{
 					if i != 0 {
-						err = errors.New(invalidTimeFormatErrorMessage)
+						err = errInvalidTimeFormat
 					}
 					break
 				}
@@ -148,7 +148,7 @@ func initTimeShift() {
 			default:
 				{
 					if exp == 0 {
-						err = errors.New(invalidTimeFormatErrorMessage)
+						err = errInvalidTimeFormat
 						return
 					}
 					var value int

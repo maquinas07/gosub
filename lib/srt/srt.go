@@ -40,8 +40,8 @@ type Subtitle struct {
 }
 
 var (
-	ErrInvalidIndex  = errors.New("gosub srt: invalid index in srt subtitle")
-	ErrInvalidTiming = errors.New("gosub srt: invalid timing in srt subtitle")
+	ErrInvalidIndex  = errors.New("gosub srt: invalid index in srt subtitle\n")
+	ErrInvalidTiming = errors.New("gosub srt: invalid timing in srt subtitle\n")
 )
 
 func parseIndex(data []byte) (index int, err error) {
