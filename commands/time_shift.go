@@ -31,7 +31,7 @@ func (o *TimeShift) shift(subs []*srt.Subtitle) {
 			if len(o.TimeFilters) > j {
 				currentTimeFilter = &o.TimeFilters[j]
 			}
-			if currentTimeFilter == nil || (currentTimeFilter.StartTime < 0 || sub.StartTime > currentTimeFilter.StartTime) && (currentTimeFilter.EndTime < 0 || sub.EndTime < currentTimeFilter.EndTime) {
+			if currentTimeFilter == nil || (currentTimeFilter.StartTime < 0 || sub.StartTime >= currentTimeFilter.StartTime) && (currentTimeFilter.EndTime < 0 || sub.EndTime <= currentTimeFilter.EndTime) {
 				sub.StartTime += o.ShiftByMs
 				sub.EndTime += o.ShiftByMs
 				if sub.StartTime < 0 {
